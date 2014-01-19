@@ -41,6 +41,7 @@ from dulwich.tests import (
     TestCase,
     )
 
+
 class WriteCommitPatchTests(TestCase):
 
     def test_simple(self):

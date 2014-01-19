@@ -32,7 +32,14 @@ import warnings
 from dulwich.errors import (
     ObjectFormatException,
     )
-from itertools import permutations
+
+try:
+    from itertools import permutations
+except ImportError:
+    from dulwich._compat import (
+        permutations,
+        )
+
 from dulwich.objects import (
     Blob,
     Tree,
@@ -40,17 +47,17 @@ from dulwich.objects import (
     ShaFile,
     Tag,
     format_timezone,
+    hex_to_sha,
+    sha_to_hex,
+    sha_to_filename,
     check_hexsha,
     check_identity,
     parse_timezone,
     TreeEntry,
-    hex_to_sha,
-    sha_to_hex,
     parse_tree,
     _parse_tree_py,
     sorted_tree_items,
     _sorted_tree_items_py,
-    sha_to_filename,
     )
 from dulwich.tests import (
     TestCase,

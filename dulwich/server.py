@@ -56,7 +56,9 @@ from dulwich.errors import (
     ObjectFormatException,
     )
 from dulwich import log_utils
-from dulwich.objects import hex_to_sha
+from dulwich.objects import (
+    hex_to_sha,
+    )
 from dulwich.pack import (
     write_pack_objects,
     )
@@ -182,7 +184,6 @@ class FileSystemBackend(Backend):
     def close(self):
         for repo in self._known_repos:
             repo.close()
-
 
 class Handler(object):
     """Smart protocol command handler base class."""
@@ -421,7 +422,6 @@ class ProtocolGraphWalker(object):
         want = self.proto.read_pkt_line()
         if not want:
             return []
-
         line, caps = extract_want_line_capabilities(want)
         self.handler.set_client_capabilities(caps)
         self.set_ack_type(ack_type(caps))

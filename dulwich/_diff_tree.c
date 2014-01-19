@@ -26,6 +26,14 @@
 typedef unsigned short mode_t;
 #endif
 
+#if (PY_VERSION_HEX < 0x02050000)
+typedef int Py_ssize_t;
+#endif
+
+#if (PY_VERSION_HEX < 0x02060000)
+#define Py_SIZE(ob)             (((PyVarObject*)(ob))->ob_size)
+#endif
+
 #ifndef MIN
 #define MIN(a,b) ((a)>(b)?(b):(a))
 #endif
@@ -55,8 +63,8 @@ static void free_objects(PyObject **objs, Py_ssize_t n)
  * :return: A (C) array of PyObject pointers to TreeEntry objects for each path
  *     in tree.
  */
-static PyObject **tree_entries(char *path, Py_ssize_t path_len,
-                               PyObject *tree, Py_ssize_t *n)
+static PyObject **tree_entries(char *path, Py_ssize_t path_len, PyObject *tree,
+		Py_ssize_t *n)
 {
 	PyObject *iteritems, *items, **result = NULL;
 	PyObject *old_entry, *name, *sha;
@@ -112,6 +120,7 @@ static PyObject **tree_entries(char *path, Py_ssize_t path_len,
 		name_len = PyBytes_GET_SIZE(name);
 		if (PyErr_Occurred())
 			goto error;
+
 		new_path_len = name_len;
 		if (path_len)
 			new_path_len += path_len + 1;

@@ -42,6 +42,7 @@ from dulwich import (
     repo,
     )
 from dulwich.tests import (
+    get_safe_env,
     SkipTest,
     )
 

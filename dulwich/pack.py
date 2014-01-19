@@ -30,7 +30,12 @@ match for the object name. You then use the pointer got from this as
 a pointer in to the corresponding packfile.
 """
 
-from collections import defaultdict
+try:
+    from collections import namedtuple
+except ImportError:
+    from dulwich._compat import (
+        namedtuple,
+        )
 
 import binascii
 from io import (
@@ -51,7 +56,10 @@ else:
     has_mmap = True
 import os
 import struct
-from struct import unpack_from
+try:
+    from struct import unpack_from
+except ImportError:
+    from dulwich._compat import unpack_from
 from os import SEEK_CUR, SEEK_END
 import sys
 import zlib
@@ -68,9 +76,9 @@ from dulwich.lru_cache import (
 
 from dulwich.objects import (
     ShaFile,
-    object_header,
-    sha_to_hex,
     hex_to_sha,
+    sha_to_hex,
+    object_header,
     )
 
 supports_mmap_offset = (sys.version_info[0] >= 3 or
@@ -1418,6 +1426,7 @@ def pack_object_header(type_num, delta_base, size):
         header += delta_base
     return header
 
+
 def write_pack_object(f, type, object, sha=None):
     """Write pack object to a file.
 
@@ -1452,6 +1461,9 @@ def write_pack(filename, objects):
         Should provide __len__
     :return: Tuple with checksum of pack file and index file
     """
+    if num_objects is not None:
+        warnings.warn('num_objects argument to write_pack is deprecated',
+                      DeprecationWarning)
     f = GitFile(filename + '.pack', 'wb')
     try:
         entries, data_sum = write_pack_objects(f, objects)

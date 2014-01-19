@@ -41,11 +41,11 @@ from dulwich.objects import (
     Tag,
     Tree,
     ZERO_SHA,
-    S_ISGITLINK,
-    object_class,
     hex_to_sha,
     sha_to_hex,
     sha_to_filename,
+    S_ISGITLINK,
+    object_class,
     )
 from dulwich.pack import (
     Pack,
@@ -391,6 +391,18 @@ class DiskObjectStore(PackBasedObjectStore):
             if e.errno == errno.ENOENT:
                 return []
             raise
+        ret = []
+        try:
+            for l in f.readlines():
+                l = l.rstrip("\n")
+                if l[0] == "#":
+                    continue
+                if not os.path.isabs(l):
+                    continue
+                ret.append(l)
+            return ret
+        finally:
+            f.close()
 
     def add_alternate_path(self, path):
         """Add an alternate path to this object store.

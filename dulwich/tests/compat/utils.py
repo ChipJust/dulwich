@@ -30,6 +30,7 @@ from dulwich.repo import Repo
 from dulwich.protocol import TCP_GIT_PORT
 
 from dulwich.tests import (
+    get_safe_env,
     SkipTest,
     TestCase,
     )
@@ -117,6 +118,9 @@ def run_git(args, git_path=_DEFAULT_GIT, input=None, capture_stdout=False,
         False, None will be returned as stdout contents.
     :raise OSError: if the git executable was not found.
     """
+
+    env = get_safe_env(popen_kwargs.pop('env', None))
+
     args = [git_path] + args
     popen_kwargs['stdin'] = subprocess.PIPE
     if capture_stdout:

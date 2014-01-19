@@ -40,6 +40,9 @@ from dulwich.diff_tree import (
 from dulwich.index import (
     commit_tree,
     )
+from dulwich._compat import (
+    permutations,
+    )
 from dulwich.object_store import (
     MemoryObjectStore,
     )
@@ -58,6 +61,7 @@ from dulwich.tests.utils import (
     functest_builder,
     ext_functest_builder,
     )
+
 
 class DiffTestCase(TestCase):
 

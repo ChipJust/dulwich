@@ -1,4 +1,13 @@
-0.8.4	UNRELEASED
+0.8.5	2012-03-29
+
+ BUG FIXES
+
+  * Avoid use of 'with' in dulwich.index. (Jelmer Vernooij)
+
+  * Be a little bit strict about OS behaviour in index tests.
+    Should fix the tests on Debian GNU/kFreeBSD. (Jelmer Vernooij)
+
+0.8.4	2012-03-28
 
  BUG FIXES
 
@@ -10,6 +19,9 @@
 
   * Fix parsing of invalid timezone offsets with two minus signs.
     (Jason R. Coombs, #697828)
+
+  * Reset environment variables during tests, to avoid
+    test isolation leaks reading ~/.gitconfig. (Risto Kankkunen)
 
  TESTS
 
@@ -25,6 +37,8 @@
   * The WSGI server now transparently handles when a git client submits data
     using Content-Encoding: gzip.
     (David Blewett, Jelmer Vernooij)
+
+  * Add dulwich.index.build_index_from_tree(). (milki)
 
 0.8.3	2012-01-21
 

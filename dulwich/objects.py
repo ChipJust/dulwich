@@ -26,11 +26,18 @@ from io import (
 import os
 import posixpath
 import stat
+import warnings
 import zlib
 import hashlib
 import re
 
-from collections import namedtuple
+try:
+    from collections import namedtuple
+except ImportError:
+    from dulwich._compat import (
+        namedtuple,
+        )
+
 
 from dulwich.errors import (
     ChecksumMismatch,
@@ -41,7 +48,9 @@ from dulwich.errors import (
     ObjectFormatException,
     )
 from dulwich.file import GitFile
-
+from dulwich._compat import (
+    make_sha,
+    )
 
 ZERO_SHA = b"0" * 40
 
@@ -81,16 +90,19 @@ def _decompress(string):
     dcomped += dcomp.flush()
     return dcomped
 
+
 def sha_to_hex(sha):
     """Takes a string and returns the hex of the sha within"""
     hexsha = binascii.hexlify(sha)
     assert len(hexsha) == 40, "Incorrect length of sha1 string: %d" % hexsha
     return hexsha
 
+
 def hex_to_sha(hex):
     """Takes a hex sha and returns a binary sha"""
     assert len(hex) == 40, "Incorrent length of hexsha: %s" % hex
     return binascii.unhexlify(hex)
+
 
 def sha_to_filename(path, sha):
     """Takes a hex sha and returns its filename relative to the given path."""
@@ -568,6 +580,7 @@ class Blob(ShaFile):
         :raise ObjectFormatException: if the object is malformed in some way
         """
         super(Blob, self).check()
+
 
 def _parse_tag_or_commit(text):
     """Parse tag or commit text.

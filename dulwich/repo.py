@@ -22,7 +22,7 @@
 """Repository access.
 
 This module contains the base class for git repositories
-(BaseRepo) and an implementation which uses a repository on 
+(BaseRepo) and an implementation which uses a repository on
 local disk (Repo).
 
 """
@@ -60,6 +60,8 @@ from dulwich.objects import (
     Tree,
     hex_to_sha,
     )
+import warnings
+
 
 OBJECTDIR = 'objects'
 SYMREF = b'ref: '
@@ -84,6 +86,7 @@ def read_info_refs(f):
         (sha, name) = l.rstrip("\r\n").split("\t", 1)
         ret[name] = sha
     return ret
+
 
 def check_ref_format(refname):
     """Check if a refname is correctly formatted.
@@ -119,6 +122,12 @@ def check_ref_format(refname):
 
 class RefsContainer(object):
     """A container for refs."""
+
+    def set_ref(self, name, other):
+        warnings.warn("RefsContainer.set_ref() is deprecated."
+            "Use set_symblic_ref instead.",
+            category=DeprecationWarning, stacklevel=2)
+        return self.set_symbolic_ref(name, other)
 
     def set_symbolic_ref(self, name, other):
         """Make a ref point at another ref.
@@ -1300,6 +1309,18 @@ class Repo(BaseRepo):
                 self.refs[b'refs/heads/master'])
         except KeyError:
             pass
+
+        # Update target head
+        head, head_sha = self.refs._follow('HEAD')
+        target.refs.set_symbolic_ref('HEAD', head)
+        target['HEAD'] = head_sha
+
+        if not bare:
+            # Checkout HEAD to target dir
+            from dulwich.index import build_index_from_tree
+            build_index_from_tree(target.path, target.index_path(),
+                    target.object_store, target['HEAD'].tree)
+
         return target
 
     def __repr__(self):

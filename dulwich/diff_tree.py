@@ -18,13 +18,22 @@
 
 """Utilities for diffing files and trees."""
 
-from collections import defaultdict
+try:
+    from collections import defaultdict
+except ImportError:
+    from dulwich._compat import defaultdict
 
 from io import BytesIO
 import itertools
 import stat
 
-from collections import namedtuple
+try:
+    from collections import namedtuple
+except ImportError:
+    from dulwich._compat import (
+        namedtuple,
+        )
+
 from dulwich.objects import (
     S_ISGITLINK,
     TreeEntry,
@@ -67,6 +76,7 @@ def _tree_entries(path, tree):
     for entry in tree.iteritems(name_order=True):
         result.append(entry.in_path(path))
     return result
+
 
 def _merge_entries(path, tree1, tree2):
     """Merge the entries of two trees.

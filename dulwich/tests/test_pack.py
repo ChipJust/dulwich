@@ -38,10 +38,11 @@ from dulwich.object_store import (
     )
 from dulwich.objects import (
     Blob,
-    Commit,
-    Tree,
     hex_to_sha,
     sha_to_hex,
+    Commit,
+    Tree,
+    Blob,
     )
 from dulwich.pack import (
     OFS_DELTA,
@@ -70,7 +71,7 @@ from dulwich.pack import (
 from dulwich.tests import (
     TestCase,
     )
-from .utils import (
+from utils import (
     make_object,
     build_pack,
     )
@@ -316,6 +317,10 @@ class TestPack(PackTests):
                 orig_checksum = origpack.index.get_stored_checksum()
                 new_checksum = newpack.index.get_stored_checksum()
                 self.assertTrue(wrong_version or orig_checksum == new_checksum)
+            finally:
+                newpack.close()
+        finally:
+            origpack.close()
 
     def test_commit_obj(self):
         with self.get_pack(pack1_sha) as p:

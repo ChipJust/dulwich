@@ -52,7 +52,7 @@ which claims that the client doesn't have any objects::
 
    >>> class DummyGraphWalker(object):
    ...     def ack(self, sha): pass
-   ...     def __next__(self): pass
+   ...     def next(self): pass
 
 With the determine_wants function in place, we can now fetch a pack,
 which we will write to a ``BytesIO`` object::

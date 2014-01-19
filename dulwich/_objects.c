@@ -21,6 +21,10 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#if (PY_VERSION_HEX < 0x02050000)
+typedef int Py_ssize_t;
+#endif
+
 #if defined(__MINGW32_VERSION) || defined(__APPLE__)
 size_t rep_strnlen(char *text, size_t maxlen);
 size_t rep_strnlen(char *text, size_t maxlen)
@@ -137,7 +141,7 @@ static PyObject *py_parse_tree(PyObject *self, PyObject *args, PyObject *kw)
 }
 
 struct tree_item {
-	char *name;
+	const char *name;
 	int mode;
 	PyObject *tuple;
 };

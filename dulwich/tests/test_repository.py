@@ -23,6 +23,7 @@ from io import BytesIO
 import os
 import shutil
 import tempfile
+import warnings
 
 from dulwich import errors
 from dulwich.file import (

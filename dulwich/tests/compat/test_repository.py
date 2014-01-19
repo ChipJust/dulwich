@@ -40,6 +40,7 @@ from dulwich.tests.compat.utils import (
     CompatTestCase,
     )
 
+
 class ObjectStoreTestCase(CompatTestCase):
     """Tests for git repository compatibility."""
 
@@ -58,6 +59,7 @@ class ObjectStoreTestCase(CompatTestCase):
             self.assertEqual(3, len(fields))
             refname, type_name, sha = fields
             check_ref_format(refname[5:])
+            hex_to_sha(sha)
             refs[refname] = (type_name, sha)
         return refs
 

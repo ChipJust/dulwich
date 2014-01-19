@@ -1,7 +1,11 @@
 PYTHON = python3
 SETUP = $(PYTHON) setup.py
 PYDOCTOR ?= pydoctor
+ifeq ($(shell $(PYTHON) -c "import sys; print sys.version_info >= (2, 7)"),True)
 TESTRUNNER ?= unittest
+else
+TESTRUNNER ?= unittest2.__main__
+endif
 RUNTEST = PYTHONPATH=.:$(PYTHONPATH) $(PYTHON) -m $(TESTRUNNER)
 
 all: build
@@ -38,9 +42,3 @@ check-all: check check-pypy check-noextensions
 clean::
 	$(SETUP) clean --all
 	rm -f dulwich/*.so
-	rm -f dulwich/*.pyc
-	rm -f dulwich/tests/*.pyc
-	rm -f dulwich/tests/compat/*.pyc
-	rm -rf dulwich/__pycache__
-	rm -rf dulwich/tests/__pycache__
-	rm -rf dulwich/tests/compat/__pycache__

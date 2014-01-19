@@ -27,8 +27,8 @@ from dulwich.objects import (
     S_IFGITLINK,
     S_ISGITLINK,
     Tree,
-    sha_to_hex,
     hex_to_sha,
+    sha_to_hex,
     )
 from dulwich.pack import (
     SHA1Reader,
@@ -60,7 +60,7 @@ def pathjoin(*args):
 
 def read_cache_time(f):
     """Read a cache time.
-    
+
     :param f: File-like object to read from
     :return: Tuple with seconds and nanoseconds
     """
@@ -69,7 +69,7 @@ def read_cache_time(f):
 
 def write_cache_time(f, t):
     """Write a cache time.
-    
+
     :param f: File-like object to write to
     :param t: Time to write (as int, float or tuple with secs and nsecs)
     """
@@ -80,7 +80,6 @@ def write_cache_time(f, t):
         t = (int(secs), int(nsecs * 1000000000))
     elif not isinstance(t, tuple):
         raise TypeError(t)
-
     f.write(struct.pack(">LL", *t))
 
 
@@ -145,7 +144,7 @@ def read_index_dict(f):
 
 def write_index(f, entries):
     """Write an index file.
-    
+
     :param f: File-like object to write to
     :param entries: Iterable over the entries to write
     """
@@ -169,7 +168,7 @@ def cleanup_mode(mode):
     """Cleanup a mode value.
 
     This will return a mode that can be stored in a tree object.
-    
+
     :param mode: Mode to clean up.
     """
     if stat.S_ISLNK(mode):
@@ -188,7 +187,7 @@ class Index(object):
 
     def __init__(self, filename):
         """Open an index file.
-        
+
         :param filename: Path to the index file
         """
         self._filename = filename
@@ -200,20 +199,27 @@ class Index(object):
 
     def write(self):
         """Write current contents of index to disk."""
-        with SHA1Writer(GitFile(self._filename, 'wb')) as f:
+        f = GitFile(self._filename, 'wb')
+        try:
+            f = SHA1Writer(f)
             write_index_dict(f, self._byname)
+        finally:
+            f.close()
 
     def read(self):
         """Read current contents of index from disk."""
         if not os.path.exists(self._filename):
             return
-
-        with SHA1Reader(GitFile(self._filename, 'rb')) as f:
+        f = GitFile(self._filename, 'rb')
+        try:
+            f = SHA1Reader(f)
             for x in read_index(f):
                 self[x[0]] = tuple(x[1:])
             # FIXME: Additional data?
             f.read(os.path.getsize(self._filename)-f.tell()-20)
             f.check_sha()
+        finally:
+            f.close()
 
     def __len__(self):
         """Number of entries in this index file."""
@@ -221,7 +227,7 @@ class Index(object):
 
     def __getitem__(self, name):
         """Retrieve entry by relative path.
-        
+
         :return: tuple with (ctime, mtime, dev, ino, mode, uid, gid, size, sha, flags)
         """
         return self._byname[name]
@@ -231,7 +237,7 @@ class Index(object):
         return iter(self._byname)
 
     def get_sha1(self, path):
-        """Return the SHA1 for the object at a path."""
+        """Return the (git object) SHA1 for the object at a path."""
         return self[path][-2]
 
     def get_mode(self, path):
@@ -249,6 +255,7 @@ class Index(object):
         self._byname = {}
 
     def __setitem__(self, name, x):
+        assert isinstance(name, str)
         assert len(x) == 10
         # Remove the old entry if any
         self._byname[name] = x
@@ -382,3 +389,44 @@ def index_entry_from_stat(stat_val, hex_sha, flags, mode=None):
     return (stat_val.st_ctime, stat_val.st_mtime, stat_val.st_dev,
             stat_val.st_ino, mode, stat_val.st_uid,
             stat_val.st_gid, stat_val.st_size, hex_sha, flags)
+
+
+def build_index_from_tree(prefix, index_path, object_store, tree_id):
+    """Generate and materialize index from a tree
+
+    :param tree_id: Tree to materialize
+    :param prefix: Target dir for materialized index files
+    :param index_path: Target path for generated index
+    :param object_store: Non-empty object store holding tree contents
+
+    :note:: existing index is wiped and contents are not merged
+        in a working dir. Suiteable only for fresh clones.
+    """
+
+    index = Index(index_path)
+
+    for entry in object_store.iter_tree_contents(tree_id):
+        full_path = os.path.join(prefix, entry.path)
+
+        if not os.path.exists(os.path.dirname(full_path)):
+            os.makedirs(os.path.dirname(full_path))
+
+        # FIXME: Merge new index into working tree
+        if stat.S_ISLNK(entry.mode):
+            # FIXME: This will fail on Windows. What should we do instead?
+            os.symlink(object_store[entry.sha].as_raw_string(), full_path)
+        else:
+            f = open(full_path, 'wb')
+            try:
+                # Write out file
+                f.write(object_store[entry.sha].as_raw_string())
+            finally:
+                f.close()
+
+            os.chmod(full_path, entry.mode)
+
+        # Add file to index
+        st = os.lstat(full_path)
+        index[entry.path] = index_entry_from_stat(st, entry.sha, 0)
+
+    index.write()

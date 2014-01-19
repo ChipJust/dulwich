@@ -600,6 +600,7 @@ class SubprocessGitClient(TraditionalGitClient):
 
     def __init__(self, *args, **kwargs):
         self._connection = None
+        self._stderr = None
         self._stderr = kwargs.get('stderr')
         if 'stderr' in kwargs:
             del kwargs['stderr']

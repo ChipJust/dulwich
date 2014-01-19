@@ -18,10 +18,18 @@
 
 """Tests for commit walking functionality."""
 
-from itertools import permutations
+
+try:
+    from itertools import permutations
+except ImportError:
+    from dulwich._compat import (
+        permutations,
+        )
 from dulwich.diff_tree import (
+    CHANGE_ADD,
     CHANGE_MODIFY,
     CHANGE_RENAME,
+    CHANGE_COPY,
     TreeChange,
     RenameDetector,
     )
@@ -42,7 +50,7 @@ from dulwich.walk import (
     _topo_reorder
     )
 from dulwich.tests import TestCase
-from .utils import (
+from utils import (
     F,
     make_object,
     build_commit_graph,

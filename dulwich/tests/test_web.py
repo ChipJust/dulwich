@@ -63,6 +63,7 @@ from dulwich.tests.utils import (
     make_object,
     )
 
+
 class TestHTTPGitRequest(HTTPGitRequest):
     """HTTPGitRequest with overridden methods to help test caching."""
 

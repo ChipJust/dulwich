@@ -31,6 +31,7 @@ from dulwich.errors import (
     NotTreeError,
     )
 from dulwich.objects import (
+    sha_to_hex,
     object_class,
     Blob,
     Tag,

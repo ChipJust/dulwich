@@ -31,8 +31,8 @@ from dulwich.index import (
     commit_tree,
     )
 from dulwich.objects import (
-    Commit,
     FixedSha,
+    Commit,
     )
 from dulwich.pack import (
     OFS_DELTA,

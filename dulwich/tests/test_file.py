@@ -28,6 +28,7 @@ from dulwich.tests import (
     TestCase,
     )
 
+
 class FancyRenameTests(TestCase):
 
     def setUp(self):
