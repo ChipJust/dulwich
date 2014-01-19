@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.
 
-"""Tests for reading and writing configuraiton files."""
+"""Tests for reading and writing configuration files."""
 
 from io import BytesIO
 from dulwich.config import (
@@ -170,6 +170,17 @@ class ConfigDictTests(TestCase):
         self.assertFalse(cd.get_boolean((b"core", ), b"foo"))
         cd.set((b"core", ), b"foo", b"invalid")
         self.assertRaises(ValueError, cd.get_boolean, (b"core", ), b"foo")
+
+    def test_dict(self):
+        cd = ConfigDict()
+        cd.set(("core", ), "foo", "bla")
+        cd.set(("core2", ), "foo", "bloe")
+
+        self.assertEqual([("core2", ), ("core", )], cd.keys())
+        self.assertEqual(cd[("core", )], {'foo': 'bla'})
+
+        cd['a'] = 'b'
+        self.assertEqual(cd['a'], 'b')
 
 
 class StackedConfigTests(TestCase):

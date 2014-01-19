@@ -148,8 +148,9 @@ class DictBackend(Backend):
         try:
             return self.repos[path]
         except KeyError:
-            raise NotGitRepository("No git repository was found at %s",
-                path)
+            raise NotGitRepository(
+                "No git repository was found at %(path)s" % dict(path=path)
+            )
 
     def __enter__(self):
         return self
@@ -667,8 +668,8 @@ class ReceivePackHandler(Handler):
         status = []
         # TODO: more informative error messages than just the exception string
         try:
-            p = self.repo.object_store.add_thin_pack(self.proto.read,
-                                                     self.proto.recv)
+            recv = getattr(self.proto, "recv", None)
+            p = self.repo.object_store.add_thin_pack(self.proto.read, recv)
             status.append((b'unpack', b'ok'))
         except all_exceptions as e:
             status.append((b'unpack', str(e).replace('\n', '').encode('utf-8')))

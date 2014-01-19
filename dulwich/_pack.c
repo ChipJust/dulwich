@@ -79,7 +79,7 @@ static PyObject *py_apply_delta(PyObject *self, PyObject *args)
 	size_t outindex = 0;
 	int index;
 	uint8_t *out;
-	PyObject *ret, *py_src_buf, *py_delta;
+	PyObject *ret, *py_src_buf, *py_delta, *ret_list;
 
 	if (!PyArg_ParseTuple(args, "OO", &py_src_buf, &py_delta))
 		return NULL;
@@ -104,7 +104,7 @@ static PyObject *py_apply_delta(PyObject *self, PyObject *args)
 	src_size = get_delta_header_size(delta, &index, delta_len);
 	if (src_size != src_buf_len) {
 		PyErr_Format(PyExc_ValueError, 
-			"Unexpected source buffer size: %lu vs %d", src_size, src_buf_len);
+					 "Unexpected source buffer size: %lu vs %d", src_size, src_buf_len);
 		Py_DECREF(py_src_buf);
 		Py_DECREF(py_delta);
 		return NULL;
@@ -175,7 +175,12 @@ static PyObject *py_apply_delta(PyObject *self, PyObject *args)
 		return NULL;
 	}
 
-	return Py_BuildValue("[N]", ret);
+	ret_list = Py_BuildValue("[N]", ret);
+	if (ret_list == NULL) {
+		Py_DECREF(ret);
+		return NULL;
+	}
+	return ret_list;
 }
 
 static PyObject *py_bisect_find_sha(PyObject *self, PyObject *args)
