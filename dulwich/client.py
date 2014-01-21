@@ -168,6 +168,9 @@ class GitClient(object):
             if server_capabilities is None:
                 (ref, server_capabilities) = extract_capabilities(ref)
             refs[ref] = sha
+
+        if len(refs) == 0:
+            return None, set([])
         return refs, set(server_capabilities)
 
     def send_pack(self, path, determine_wants, generate_pack_contents,
@@ -198,13 +201,12 @@ class GitClient(object):
         if determine_wants is None:
             determine_wants = target.object_store.determine_wants_all
         f, commit = target.object_store.add_pack()
-        try:
-            return self.fetch_pack(path, determine_wants,
-                target.get_graph_walker(), f.write, progress)
-        finally:
-            pack = commit()
-            if pack and getattr(pack, 'close', None) is not None:
-                pack.close()
+        result = self.fetch_pack(path, determine_wants,
+                                 target.get_graph_walker(), f.write, progress)
+        pack = commit()
+        if pack and getattr(pack, 'close', None) is not None:
+            pack.close()
+        return result
 
     def fetch_pack(self, path, determine_wants, graph_walker, pack_data,
                    progress=None):
@@ -483,6 +485,11 @@ class TraditionalGitClient(GitClient):
         with proto:
             refs, server_capabilities = self._read_refs(proto)
             negotiated_capabilities = self._fetch_capabilities & server_capabilities
+
+            if refs is None:
+                proto.write_pkt_line(None)
+                return refs
+
             try:
                 wants = determine_wants(refs)
             except:
@@ -658,6 +665,8 @@ class SSHGitClient(TraditionalGitClient):
         return self.alternative_paths.get(cmd, 'git-%s' % cmd)
 
     def _connect(self, cmd, path):
+        if path.startswith("/~"):
+            path = path[1:]
         con = get_ssh_vendor().connect_ssh(
             self.host, ["%s '%s'" % (self._get_cmd_path(cmd), path)],
             port=self.port, username=self.username)
@@ -679,6 +688,17 @@ class HttpGitClient(GitClient):
     def _get_url(self, path):
         return urllib.parse.urljoin(self.base_url, path).rstrip("/") + "/"
 
+    def _http_request(self, url, headers={}, data=None):
+        req = urllib.request.Request(url, headers=headers, data=data)
+        try:
+            resp = self._perform(req)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise NotGitRepository()
+            if e.code != 200:
+                raise GitProtocolError("unexpected http response %d" % e.code)
+        return resp
+
     def _perform(self, req):
         """Perform a HTTP request.
 
@@ -696,13 +716,7 @@ class HttpGitClient(GitClient):
         if self.dumb != False:
             url += "?service=%s" % service
             headers["Content-Type"] = "application/x-%s-request" % service
-        req = urllib.request.Request(url, headers=headers)
-        resp = self._perform(req)
-        if resp.getcode() == 404:
-            raise NotGitRepository()
-        if resp.getcode() != 200:
-            raise GitProtocolError("unexpected http response %d" %
-                resp.getcode())
+        resp = self._http_request(url, headers)
         self.dumb = (not resp.info().get_content_type().startswith("application/x-git-"))
         proto = Protocol(resp.read, None, resp.close)
         if not self.dumb:
@@ -716,15 +730,9 @@ class HttpGitClient(GitClient):
     def _smart_request(self, service, url, data):
         assert url[-1] == "/"
         url = urllib.parse.urljoin(url, service)
-        req = urllib.request.Request(url,
-            headers={"Content-Type": "application/x-%s-request" % service},
-            data=data)
-        resp = self._perform(req)
-        if resp.getcode() == 404:
-            raise NotGitRepository()
-        if resp.getcode() != 200:
-            raise GitProtocolError("Invalid HTTP response from server: %d"
-                % resp.getcode())
+        req = urllib2.Request(url,
+        headers = {"Content-Type": "application/x-%s-request" % service}
+        resp = self._http_request(url, headers, data)
         if resp.info().get_content_type() != ("application/x-%s-result" % service):
             raise GitProtocolError("Invalid content-type from server: %s"
                 % resp.info().get_content_type())
@@ -819,8 +827,11 @@ def get_transport_and_path(uri, **kwargs):
         return (TCPGitClient(parsed.hostname, port=parsed.port, **kwargs),
                 parsed.path)
     elif parsed.scheme == 'git+ssh':
+        path = parsed.path
+        if path.startswith('/'):
+            path = parsed.path[1:]
         return SSHGitClient(parsed.hostname, port=parsed.port,
-                            username=parsed.username, **kwargs), parsed.path
+                            username=parsed.username, **kwargs), path
     elif parsed.scheme in ('http', 'https'):
         return HttpGitClient(urllib.parse.urlunparse(parsed), **kwargs), parsed.path
 

@@ -138,14 +138,14 @@ class ConfigFileTests(TestCase):
         c.set((b"core", ), b"foo", b"bar")
         f = BytesIO()
         c.write_to_file(f)
-        self.assertEqual(b"[core]\nfoo = bar\n", f.getvalue())
+        self.assertEqual(b"[core]\n\tfoo = bar\n", f.getvalue())
 
     def test_write_to_file_subsection(self):
         c = ConfigFile()
         c.set((b"branch", b"blie"), b"foo", b"bar")
         f = BytesIO()
         c.write_to_file(f)
-        self.assertEqual(b"[branch \"blie\"]\nfoo = bar\n", f.getvalue())
+        self.assertEqual(b"[branch \"blie\"]\n\tfoo = bar\n", f.getvalue())
 
     def test_same_line(self):
         cf = self.from_file(b"[branch.foo] foo = bar\n")
@@ -176,7 +176,7 @@ class ConfigDictTests(TestCase):
         cd.set(("core", ), "foo", "bla")
         cd.set(("core2", ), "foo", "bloe")
 
-        self.assertEqual([("core2", ), ("core", )], cd.keys())
+        self.assertEqual([("core", ), ("core2", )], cd.keys())
         self.assertEqual(cd[("core", )], {'foo': 'bla'})
 
         cd['a'] = 'b'

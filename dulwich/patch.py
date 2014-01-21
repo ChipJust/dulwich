@@ -33,6 +33,8 @@ from dulwich.objects import (
     S_ISGITLINK,
     )
 
+FIRST_FEW_BYTES = 8000
+
 def _make_writer(f):
     if hasattr(f, 'encoding'):
         # It's probably a string writer
@@ -129,13 +131,24 @@ def unified_diff(a, b, fromfile='', tofile='', n=3):
                     yield '+' + line
 
 
-def write_object_diff(f, store, old_tuple, new_tuple):
+def is_binary(content):
+    """See if the first few bytes contain any null characters.
+
+    :param content: Bytestring to check for binary content
+    """
+    return b'\0' in content[:FIRST_FEW_BYTES]
+
+
+def write_object_diff(f, store, old_tuple, new_tuple, diff_binary=False):
+
     """Write the diff for an object.
 
     :param f: File-like object to write to
     :param store: Store to retrieve objects from, if necessary
     :param (old_path, old_mode, old_hexsha): Old file
     :param (new_path, new_mode, new_hexsha): New file
+    :param diff_binary: Whether to diff files even if they
+        are considered binary files by is_binary().
 
     :note: the tuple elements should be None for nonexistant files
     """
@@ -155,13 +168,21 @@ def write_object_diff(f, store, old_tuple, new_tuple):
             return "0" * 7
         else:
             return sha[:7].decode('ascii')
-    def lines(mode, sha):
-        if sha is None:
-            return []
+
+    def content(mode, hexsha):
+        if hexsha is None:
+            return ''
         elif S_ISGITLINK(mode):
-            return ["Submodule commit " + sha.decode('ascii') + "\n"]
+            return "Submodule commit " + hexsha.decode('ascii') + "\n"
         else:
-            return [l.decode('utf-8') for l in store[sha].data.splitlines(True)]
+            return store[hexsha].data
+
+    def lines(content):
+        if not content:
+            return []
+        else:
+            return [l.decode('utf-8') for l in content.splitlines(True)]
+
     if old_path is None:
         old_path = "/dev/null"
     else:
@@ -182,10 +203,13 @@ def write_object_diff(f, store, old_tuple, new_tuple):
     if new_mode is not None:
         write(" %o" % new_mode)
     write('\n')
-    old_contents = lines(old_mode, old_id)
-    new_contents = lines(new_mode, new_id)
-    for line in unified_diff(old_contents, new_contents, old_path, new_path):
-        write(line)
+    old_content = content(old_mode, old_id)
+    new_content = content(new_mode, new_id)
+    if not diff_binary and (is_binary(old_content) or is_binary(new_content)):
+        write("Binary files %s and %s differ\n" % (old_path, new_path))
+    else:
+        for line in unified_diff(lines(old_contents), lines(new_contents), old_path, new_path):
+            write(line)
 
 
 def write_blob_diff(f, old_tuple, new_tuple):
@@ -244,17 +268,20 @@ def write_blob_diff(f, old_tuple, new_tuple):
         write(line)
 
 
-def write_tree_diff(f, store, old_tree, new_tree):
+def write_tree_diff(f, store, old_tree, new_tree, diff_binary=False):
     """Write tree diff.
 
     :param f: File-like object to write to.
     :param old_tree: Old tree id
     :param new_tree: New tree id
+    :param diff_binary: Whether to diff files even if they
+        are considered binary files by is_binary().
     """
     changes = store.tree_changes(old_tree, new_tree)
     for (oldpath, newpath), (oldmode, newmode), (oldsha, newsha) in changes:
         write_object_diff(f, store, (oldpath, oldmode, oldsha),
-                                    (newpath, newmode, newsha))
+                                    (newpath, newmode, newsha),
+                                    diff_binary=diff_binary)
 
 
 def git_am_patch_split(f):

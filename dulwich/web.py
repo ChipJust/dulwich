@@ -431,7 +431,8 @@ def main(argv=sys.argv):
     backend = DictBackend({b'/': Repo(gitdir)})
     app = make_wsgi_chain(backend)
     server = make_server(listen_addr, port, app,
-                         handler_class=HTTPGitRequestHandler)
+                         handler_class=WSGIRequestHandlerLogger,
+                         server_class=WSGIServerLogger)
     logger.info('Listening for HTTP connections on %s:%d', listen_addr,
                 port)
     server.serve_forever()
